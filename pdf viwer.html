@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>PDF Viewer</title>
+    <style>
+      #pdf-container {
+        border: 1px solid black;
+        margin: 10px;
+      }
+      /* CSS for the selection area */
+    #selection-area {
+      position: absolute;
+      border: 2px dashed blue;
+      pointer-events: none; /* Make the selection area non-clickable */
+    }
+    </style>
+  </head>
+  <body>
+    
+    <!--<ul class="menu">
+		<li>Menu Item 1
+			<ul>
+				<li>Submenu Item 1</li>
+				<li>Submenu Item 2</li>
+			</ul>
+		</li>
+		<li>Menu Item 2
+			<ul>
+				<li>Submenu Item 1</li>
+				<li>Submenu Item 2</li>
+			</ul>
+		</li>
+		<li>Menu Item 3</li>
+	</ul> //-->
+   
+    <form>
+      <input type="file" name="pdf-file">
+      <button type="submit">Upload</button>
+    </form>
+    <div id="selection-area"></div>
+    <div id="pdf-container"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script>
+      // Initialize PDF.js library
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
+
+      // Get form and file input element
+      const form = document.querySelector('form');
+      const fileInput = form.querySelector('input[type="file"]');
+
+      // Listen for form submission event
+      form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const file = fileInput.files[0];
+        if (file) {
+          // Load PDF document
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            const buffer = event.target.result;
+            const loadingTask = pdfjsLib.getDocument({ data: buffer });
+            loadingTask.promise.then(function(pdf) {
+              // Get first page
+              const pageNumber = 1;
+              pdf.getPage(pageNumber).then(function(page) {
+                // Create canvas element to display page
+                const canvas = document.createElement('canvas');
+                const viewport = page.getViewport({ scale: 1.5 });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const ctx = canvas.getContext('2d');
+                const renderContext = {
+                  canvasContext: ctx,
+                  viewport: viewport
+                };
+                page.render(renderContext).promise.then(function() {
+                  // Add canvas to container element
+                  const container = document.querySelector('#pdf-container');
+                  container.innerHTML = '';
+                  container.appendChild(canvas);
+                });
+              });
+            });
+          };
+          reader.readAsArrayBuffer(file);
+        }
+      });
+      document.addEventListener('mousemove', event => {
+      const tooltip = document.querySelector('#tooltip');
+      tooltip.innerHTML = `X: ${event.clientX}, Y: ${event.clientY}`;
+      tooltip.style.left = `${event.clientX + 10}px`;
+      tooltip.style.top = `${event.clientY + 10}px`;
+      tooltip.style.display = 'block';
+    });
+    const selectionArea = document.querySelector('#selection-area');
+    let startX, startY, endX, endY;
+
+    // Event listener for mouse down on the page
+    document.addEventListener('mousedown', event => {
+      startX = event.clientX;
+      startY = event.clientY;
+      selectionArea.style.left = `${startX}px`;
+      selectionArea.style.top = `${startY}px`;
+      selectionArea.style.width = '0';
+      selectionArea.style.height = '0';
+      selectionArea.style.display = 'block';
+    });
+
+    // Event listener for mouse move on the page
+    document.addEventListener('mousemove', event => {
+      if (startX !== undefined && startY !== undefined) {
+        endX = event.clientX;
+        endY = event.clientY;
+        const width = Math.abs(endX - startX);
+        const height = Math.abs(endY - startY);
+        selectionArea.style.width = `${width}px`;
+        selectionArea.style.height = `${height}px`;
+        selectionArea.style.borderStyle = 'dashed';
+        selectionArea.style.borderColor = 'blue';
+        selectionArea.style.borderWidth = '2px';
+        selectionArea.style.pointerEvents = 'none';
+      }
+    });
+
+    // Event listener for mouse up on the page
+    document.addEventListener('mouseup', event => {
+      selectionArea.style.display = 'none';
+      const minX = Math.min(startX, endX);
+      const minY = Math.min(startY, endY);
+      const maxX = Math.max(startX, endX);
+      const maxY = Math.max(startY, endY);
+      const message = `Selected area: X1=${minX}, Y1=${minY}, X2=${maxX}, Y2=${maxY}`;
+      alert(message);
+      startX = undefined;
+      startY = undefined;
+    });
+    document.addEventListener('contextmenu', function(event) {
+			event.preventDefault();
+
+			var menu = document.querySelector('.menu');
+			menu.style.top = event.pageY + 'px';
+			menu.style.left = event.pageX + 'px';
+			menu.style.display = 'block';
+
+			document.addEventListener('click', function(event) {
+				if (!menu.contains(event.target)) {
+					menu.style.display = 'none';
+				}
+			});
+		});
+    </script>
+  </body>
+</html>
